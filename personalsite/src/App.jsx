@@ -172,7 +172,7 @@ export default function App() {
         .del-btn:hover { color: var(--danger); }
 
         /* Pomodoro */
-        .timer-ring { position: relative; display: flex; align-items: center; justify-content: center; }
+        .timer-ring { position: relative; display: flex; align-items: center; justify-content: center; width: 240px; height: 240px; margin: 0 auto; }
         .timer-display {
           font-family: var(--font-mono); font-size: 3.5rem; font-weight: 400;
           color: var(--text); letter-spacing: 0.05em;
@@ -455,7 +455,7 @@ function PomodoroPage() {
 
   const total = mode === "work" ? customWork * 60 : mode === "short" ? customShort * 60 : 15 * 60;
   const progress = 1 - seconds / total;
-  const R = 80; const C = 2 * Math.PI * R;
+  const R = 110; const C = 2 * Math.PI * R;
 
   useEffect(() => {
     setSeconds(mode === "work" ? customWork * 60 : mode === "short" ? customShort * 60 : 15 * 60);
@@ -497,13 +497,13 @@ function PomodoroPage() {
 
       <div className="card" style={{ textAlign: "center", padding: "2.5rem" }}>
         <div className="timer-ring">
-          <svg width={200} height={200} className="ring-svg" style={{ position: "absolute" }}>
-            <circle className="ring-track" cx={100} cy={100} r={R} strokeWidth={5} />
-            <circle className="ring-prog" cx={100} cy={100} r={R} strokeWidth={5}
+          <svg width={240} height={240} className="ring-svg" style={{ position: "absolute" }}>
+            <circle className="ring-track" cx={120} cy={120} r={R} strokeWidth={5} />
+            <circle className="ring-prog" cx={120} cy={120} r={R} strokeWidth={5}
               strokeDasharray={C}
               strokeDashoffset={C * (1 - progress)} />
           </svg>
-          <div>
+          <div style={{ zIndex: 1 }}>
             <div className="timer-display">{formatTime(seconds)}</div>
             <div className="timer-label">{MODES[mode].label}</div>
           </div>
