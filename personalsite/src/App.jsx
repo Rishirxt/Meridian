@@ -69,6 +69,7 @@ export default function App() {
           --font-mono: 'DM Mono', monospace;
         }
         body { background: var(--bg); color: var(--text); font-family: var(--font-body); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .app { display: flex; min-height: 100vh; }
         .sidebar {
           width: 200px; min-height: 100vh; background: var(--surface);
@@ -93,12 +94,18 @@ export default function App() {
         .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(200,169,110,0.05); font-weight: 500; }
         .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
         .main { margin-left: 200px; flex: 1; min-height: 100vh; }
-        .page { padding: 2.5rem 3rem; max-width: 860px; }
+        .page { padding: 2.5rem 3rem; max-width: 860px; animation: fadeIn 0.4s ease-out forwards; }
 
         /* Cards */
         .card {
           background: var(--surface); border: 1px solid var(--border);
           border-radius: var(--radius); padding: 1.5rem;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+          border-color: var(--border2);
         }
         .card-sm { padding: 1rem 1.25rem; }
         .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -293,9 +300,9 @@ function HomePage({ mood, setMood, quote, setPage }) {
       </div>
 
       {/* Quote */}
-      <div className="card mb1" style={{ borderLeft: "3px solid var(--accent)", borderRadius: "0 12px 12px 0", background: "rgba(200,169,110,0.04)" }}>
-        <p style={{ color: "var(--text)", fontStyle: "italic", fontSize: "1rem", lineHeight: 1.6 }}>"{quote.text}"</p>
-        <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", letterSpacing: "0.06em", textTransform: "uppercase" }}>— {quote.author}</p>
+      <div className="card mb1" style={{ position: "relative", borderLeft: "4px solid var(--accent)", borderRadius: "0 12px 12px 0", background: "linear-gradient(90deg, rgba(200,169,110,0.08) 0%, rgba(200,169,110,0.01) 100%)", padding: "2rem" }}>
+        <div style={{ position: "absolute", top: "10px", left: "15px", fontSize: "4rem", color: "var(--accent)", opacity: 0.15, fontFamily: "var(--font-display)", lineHeight: 1 }}>"</div>
+        <p style={{ color: "var(--text)", fontStyle: "italic", fontSize: "1.15rem", lineHeight: 1.6, position: "relative", zIndex: 1, letterSpacing: "0.02em" }}>{quote.text}</p>
       </div>
 
       {/* Mood */}
