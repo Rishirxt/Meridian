@@ -1,5 +1,15 @@
 const { invoke } = window.__TAURI__.tauri;
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("Welcome to your native desktop application!");
+let greetInputEl;
+let greetMsgEl;
+
+async function greet() {
+  greetMsgEl.textContent = await invoke("greet", { name: greetInputEl.value });
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  greetInputEl = document.querySelector("#greet-input");
+  greetMsgEl = document.querySelector("#greet-msg");
+  
+  document.querySelector("#greet-button").addEventListener("click", () => greet());
 });

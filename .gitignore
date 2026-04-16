@@ -1,1 +1,6 @@
 personalsite/dist/
+node_modules/
+personalsite/node_modules/
+personalsite/src-tauri/target/
+personalsite/src-tauri/gen/
+.env*
