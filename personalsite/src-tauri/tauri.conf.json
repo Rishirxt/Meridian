@@ -1,13 +1,13 @@
 {
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
-    "devPath": "../",
-    "distDir": "../"
+    "beforeDevCommand": "npm run ui:start",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist"
   },
   "package": {
-    "productName": "personalsite",
-    "version": "0.0.0"
+    "productName": "Meridian",
+    "version": "0.1.0"
   },
   "tauri": {
     "allowlist": {
@@ -20,6 +20,13 @@
     "bundle": {
       "active": true,
       "identifier": "com.tauri.personalsite",
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
       "targets": "all"
     },
     "security": {
@@ -31,7 +38,7 @@
         "width": 800,
         "height": 600,
         "resizable": true,
-        "title": "personalsite"
+        "title": "Meridian"
       }
     ]
   }
