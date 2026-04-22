@@ -45,18 +45,13 @@ const NAV = [
   { id: "stats", label: "Stats", icon: "↗" },
 ];
 
-export default function App() {
-  const [page, setPage] = useState("home");
-  const [mood, setMood] = useLocalStorage("mood", MOODS[0]);
-  const [quote] = useState(QUOTE_LIST[Math.floor(Math.random() * QUOTE_LIST.length)]);
+const MODES = {
+  work: { label: "Focus", duration: 25 * 60 },
+  short: { label: "Short Break", duration: 5 * 60 },
+  long: { label: "Long Break", duration: 15 * 60 },
+};
 
-  useEffect(() => {
-    const handleContextMenu = (e) => e.preventDefault();
-    document.addEventListener("contextmenu", handleContextMenu);
-    return () => document.removeEventListener("contextmenu", handleContextMenu);
-  }, []);
-
-  const styleTag = `
+const STYLE_TAG = `
     ${FONTS}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -75,14 +70,23 @@ export default function App() {
       --font-body: 'DM Sans', sans-serif;
       --font-mono: 'DM Mono', monospace;
     }
-    body { background: var(--bg); color: var(--text); font-family: var(--font-body); overflow-x: hidden; user-select: none; }
+    body { 
+      background: var(--bg); color: var(--text); font-family: var(--font-body); 
+      overflow-x: hidden; user-select: none;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    body::-webkit-scrollbar { display: none; }
+    
     .app { display: flex; min-height: 100vh; }
     .sidebar {
       width: 220px; min-height: 100vh; background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
       padding: 2rem 0; position: fixed; top: 0; left: 0; z-index: 10;
+      scrollbar-width: none;
     }
+    .sidebar::-webkit-scrollbar { display: none; }
+
     .logo-container {
       padding: 0 1.5rem 2rem;
       display: flex;
@@ -114,12 +118,7 @@ export default function App() {
     .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
     
     .main { margin-left: 220px; flex: 1; min-height: 100vh; background: linear-gradient(135deg, #0e0e10 0%, #121216 100%); }
-    .page { padding: 3rem 4rem; max-width: 960px; margin: 0 auto; animation: slideIn 0.4s ease-out; }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    .page { padding: 3rem 4rem; max-width: 960px; margin: 0 auto; }
 
     .card {
       background: var(--surface); border: 1px solid var(--border);
@@ -239,15 +238,74 @@ export default function App() {
     }
   `;
 
+export default function App() {
+  const [page, setPage] = useState("home");
+  const [mood, setMood] = useLocalStorage("mood", MOODS[0]);
+  const [quote] = useState(QUOTE_LIST[Math.floor(Math.random() * QUOTE_LIST.length)]);
+
+  // Pomodoro States
+  const [pomMode, setPomMode] = useState("work");
+  const [pomSeconds, setPomSeconds] = useState(MODES.work.duration);
+  const [pomRunning, setPomRunning] = useState(false);
+  const [sessions, setSessions] = useLocalStorage("pom_sessions", 0);
+  const [customWork, setCustomWork] = useLocalStorage("pom_work", 25);
+  const [customShort, setCustomShort] = useLocalStorage("pom_short", 5);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    setPomSeconds(pomMode === "work" ? customWork * 60 : pomMode === "short" ? customShort * 60 : 15 * 60);
+    setPomRunning(false);
+  }, [pomMode, customWork, customShort]);
+
+  useEffect(() => {
+    if (pomRunning) {
+      intervalRef.current = setInterval(() => {
+        setPomSeconds(s => {
+          if (s <= 1) {
+            clearInterval(intervalRef.current);
+            setPomRunning(false);
+            if (pomMode === "work") setSessions(p => p + 1);
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+    } else clearInterval(intervalRef.current);
+    return () => clearInterval(intervalRef.current);
+  }, [pomRunning, pomMode, setSessions]);
+
+  const resetPomodoro = () => { 
+    setPomRunning(false); 
+    setPomSeconds(pomMode === "work" ? customWork * 60 : pomMode === "short" ? customShort * 60 : 15 * 60); 
+  };
+
+  useEffect(() => {
+    const handleContextMenu = (e) => e.preventDefault();
+    document.addEventListener("contextmenu", handleContextMenu);
+    return () => document.removeEventListener("contextmenu", handleContextMenu);
+  }, []);
+
+
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: styleTag }} />
+      <style dangerouslySetInnerHTML={{ __html: STYLE_TAG }} />
+
       <div className="app">
         <Sidebar page={page} setPage={setPage} />
         <main className="main">
           {page === "home" && <HomePage mood={mood} setMood={setMood} quote={quote} setPage={setPage} />}
           {page === "todo" && <TodoPage />}
-          {page === "pomodoro" && <PomodoroPage />}
+          {page === "pomodoro" && (
+            <PomodoroPage 
+              mode={pomMode} setMode={setPomMode}
+              seconds={pomSeconds} setSeconds={setPomSeconds}
+              running={pomRunning} setRunning={setPomRunning}
+              sessions={sessions} setSessions={setSessions}
+              customWork={customWork} setCustomWork={setCustomWork}
+              customShort={customShort} setCustomShort={setCustomShort}
+              reset={resetPomodoro}
+            />
+          )}
           {page === "habits" && <HabitsPage />}
           {page === "notes" && <NotesPage />}
           {page === "stats" && <StatsPage />}
@@ -439,49 +497,17 @@ function TodoPage() {
   );
 }
 
-const MODES = {
-  work: { label: "Focus", duration: 25 * 60 },
-  short: { label: "Short Break", duration: 5 * 60 },
-  long: { label: "Long Break", duration: 15 * 60 },
-};
+// MODES moved to top
 
-function PomodoroPage() {
-  const [mode, setMode] = useState("work");
-  const [seconds, setSeconds] = useState(MODES.work.duration);
-  const [running, setRunning] = useState(false);
-  const [sessions, setSessions] = useLocalStorage("pom_sessions", 0);
-  const [customWork, setCustomWork] = useLocalStorage("pom_work", 25);
-  const [customShort, setCustomShort] = useLocalStorage("pom_short", 5);
-  const intervalRef = useRef(null);
-
-  const total = mode === "work" ? customWork * 60 : mode === "short" ? customShort * 60 : 15 * 60;
-  const progress = 1 - (seconds / total);
-  const R = 85; const C = 2 * Math.PI * R;
-
-  useEffect(() => {
-    setSeconds(mode === "work" ? customWork * 60 : mode === "short" ? customShort * 60 : 15 * 60);
-    setRunning(false);
-  }, [mode, customWork, customShort]);
-
-  useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => {
-        setSeconds(s => {
-          if (s <= 1) {
-            clearInterval(intervalRef.current);
-            setRunning(false);
-            if (mode === "work") setSessions(p => p + 1);
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-    } else clearInterval(intervalRef.current);
-    return () => clearInterval(intervalRef.current);
-  }, [running, mode, setSessions]);
-
-  const reset = () => { setRunning(false); setSeconds(mode === "work" ? customWork * 60 : mode === "short" ? customShort * 60 : 15 * 60); };
-
+function PomodoroPage({ 
+  mode, setMode, 
+  seconds, setSeconds, 
+  running, setRunning, 
+  sessions, setSessions, 
+  customWork, setCustomWork, 
+  customShort, setCustomShort,
+  reset
+}) {
   return (
     <div className="page" style={{ textAlign: "center" }}>
       <h1 style={{ textAlign: "left" }}>Focus Timer</h1>
@@ -494,13 +520,7 @@ function PomodoroPage() {
       </div>
 
       <div className="card" style={{ padding: "3rem" }}>
-        <div className="timer-ring">
-          <svg width={220} height={220} className="ring-svg" style={{ position: "absolute" }}>
-            <circle className="ring-track" cx={110} cy={110} r={R} strokeWidth={6} />
-            <circle className="ring-prog" cx={110} cy={110} r={R} strokeWidth={6}
-              strokeDasharray={C}
-              strokeDashoffset={C * (1 - (isNaN(progress) ? 0 : progress))} />
-          </svg>
+        <div className="timer-content" style={{ margin: "1rem 0" }}>
           <div>
             <div className="timer-display">{formatTime(seconds)}</div>
             <div className="timer-label">{MODES[mode].label}</div>
