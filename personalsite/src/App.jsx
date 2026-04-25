@@ -75,8 +75,10 @@ function useLocalStorage(key, init) {
   return [val, setVal];
 }
 
-function fmt(s) {
-  return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+function fmtParts(s) {
+  const m = Math.floor(s / 60).toString().padStart(2, "0");
+  const sec = (s % 60).toString().padStart(2, "0");
+  return [m, sec];
 }
 
 function getTodayKey() {
@@ -353,8 +355,22 @@ input[type=range]::-webkit-slider-thumb {
 .ring-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; }
 .ring-wrap svg { transform: rotate(-90deg); filter: drop-shadow(0 0 12px rgba(201,169,110,0.15)); }
 .ring-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
-.ring-time  { font-family: var(--font-m); font-size: 48px; color: var(--t1); line-height: 1; font-variant-numeric: tabular-nums; width: 160px; text-align: center; }
-.ring-mode  { font-size: 10px; color: var(--t3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px; }
+.ring-time  {
+  font-family: var(--font-m);
+  font-size: 52px;
+  color: var(--t1);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  letter-spacing: -0.02em;
+}
+.ring-time span { display: inline-block; min-width: 0.65em; text-align: center; }
+.ring-time .colon { min-width: 0.25em; opacity: 0.5; font-family: var(--font-b); position: relative; top: -4px; }
+.ring-mode  { font-size: 10px; color: var(--t3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
 .session-dots { display: flex; gap: 5px; justify-content: center; margin: 12px 0; }
 .s-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--b2); transition: all 0.3s; }
 .s-dot.done   { background: var(--gold); border-color: var(--gold); }
@@ -1055,7 +1071,18 @@ function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, sessions
               strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.5s, stroke 0.3s" }} />
           </svg>
           <div className="ring-inner">
-            <div className="ring-time">{fmt(secs)}</div>
+            <div className="ring-time">
+              {(() => {
+                const [m, s] = fmtParts(secs);
+                return (
+                  <>
+                    <span>{m}</span>
+                    <span className="colon">:</span>
+                    <span>{s}</span>
+                  </>
+                );
+              })()}
+            </div>
             <div className="ring-mode">{MODES[mode].label}</div>
           </div>
         </div>
