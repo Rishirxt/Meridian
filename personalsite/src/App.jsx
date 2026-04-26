@@ -21,7 +21,6 @@ const NAV = [
   { id: "goals", label: "Goals", icon: "◈" },
   { section: "Productivity" },
   { id: "tasks", label: "Tasks", icon: "✓", badge: true },
-  { id: "study", label: "Study Tracker", icon: "◉" },
   { id: "focus", label: "Focus Timer", icon: "◎" },
   { section: "Wellness" },
   { id: "habits", label: "Habits", icon: "▦" },
@@ -45,12 +44,7 @@ const DEFAULT_HABITS = [
   { id: 6, icon: "🚫", name: "No phone till 9am" },
 ];
 
-const DEFAULT_SUBJECTS = [
-  { id: 1, name: "Mathematics", icon: "📐", color: "var(--gold)", target: 20 },
-  { id: 2, name: "Physics", icon: "⚗️", color: "var(--jade)", target: 18 },
-  { id: 3, name: "Chemistry", icon: "🧪", color: "var(--indigo)", target: 16 },
-  { id: 4, name: "English", icon: "📝", color: "var(--rose)", target: 8 },
-];
+
 
 const DEFAULT_GOALS = [
   { id: 1, icon: "🎓", name: "Final Exams 2026", desc: "Pass all subjects with distinction", color: "var(--gold)", progress: 62, deadline: "14 days" },
@@ -423,6 +417,9 @@ export default function App() {
   const [pomRunning, setPomRunning] = useState(false);
   const [customWork, setCustomWork] = useLocalStorage("pom_work", 25);
   const [customShort, setCustomShort] = useLocalStorage("pom_short", 5);
+  const [focusSessions, setFocusSessions] = useLocalStorage("focus_sessions", []);
+  const [currentTask, setCurrentTask] = useState("");
+  const [currentCategory, setCurrentCategory] = useState("General");
   const ivRef = useRef(null);
 
   useEffect(() => {
@@ -437,7 +434,19 @@ export default function App() {
           if (s <= 1) {
             clearInterval(ivRef.current);
             setPomRunning(false);
-            if (pomMode === "work") setSessions(p => p + 1);
+            if (pomMode === "work") {
+              setSessions(p => p + 1);
+              // Save to "Database"
+              const newSession = {
+                id: Date.now(),
+                task: currentTask || "Deep Work",
+                category: currentCategory,
+                duration: customWork,
+                date: getTodayKey(),
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              };
+              setFocusSessions(prev => [newSession, ...prev]);
+            }
             return 0;
           }
           return s - 1;
@@ -465,7 +474,6 @@ export default function App() {
             {page === "home" && <HomePage greeting={greeting} dateStr={dateStr} quote={quote} setPage={setPage} sessions={sessions} />}
             {page === "goals" && <GoalsPage />}
             {page === "tasks" && <TasksPage />}
-            {page === "study" && <StudyPage />}
             {page === "focus" && (
               <FocusPage
                 mode={pomMode} setMode={setPomMode}
@@ -474,11 +482,14 @@ export default function App() {
                 sessions={sessions} setSessions={setSessions}
                 customWork={customWork} setCustomWork={setCustomWork}
                 customShort={customShort} setCustomShort={setCustomShort}
+                focusSessions={focusSessions} setFocusSessions={setFocusSessions}
+                currentTask={currentTask} setCurrentTask={setCurrentTask}
+                currentCategory={currentCategory} setCurrentCategory={setCurrentCategory}
               />
             )}
             {page === "habits" && <HabitsPage />}
             {page === "notes" && <NotesPage />}
-            {page === "stats" && <StatsPage sessions={sessions} />}
+            {page === "stats" && <StatsPage focusSessions={focusSessions} />}
           </div>
         </div>
       </div>
@@ -531,7 +542,7 @@ function Sidebar({ page, setPage, sessions }) {
 // ─── TOPBAR ───────────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
   home: "Dashboard", goals: "Goals",
-  tasks: "Tasks", study: "Study Tracker", focus: "Focus Timer",
+  tasks: "Tasks", focus: "Focus Timer",
   habits: "Habits", notes: "Notes", stats: "Analytics",
 };
 
@@ -550,12 +561,26 @@ function TopBar({ dateStr, mood, page }) {
 
 // ─── HOME PAGE ────────────────────────────────────────────────────────────────
 function HomePage({ greeting, dateStr, quote, setPage, sessions }) {
+  const [focusSessions] = useLocalStorage("focus_sessions", []);
   const [todos] = useLocalStorage("todos", []);
   const doneCount = todos.filter(t => t.done).length;
   const total = todos.length;
 
-  const weekData = [1.5, 2.0, 0, 3.0, 2.5, 1.0, 0];
-  const maxW = Math.max(...weekData) || 1;
+  const totalFocusMins = focusSessions.reduce((acc, s) => acc + s.duration, 0);
+  const totalFocusHrs = (totalFocusMins / 60).toFixed(1);
+
+  // Group focus sessions by day for the chart
+  const weekData = [0, 0, 0, 0, 0, 0, 0];
+  const today = new Date();
+  focusSessions.forEach(s => {
+    const sDate = new Date(s.date);
+    const diff = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
+    if (diff >= 0 && diff < 7) {
+      const idx = (sDate.getDay() + 6) % 7;
+      weekData[idx] += s.duration / 60;
+    }
+  });
+  const maxW = Math.max(...weekData, 1);
 
   return (
     <div>
@@ -578,15 +603,15 @@ function HomePage({ greeting, dateStr, quote, setPage, sessions }) {
         </div>
         <div className="stat-card" style={{ "--card-accent": "var(--jade)" }} onClick={() => setPage("focus")}>
           <div className="stat-num">{sessions}</div>
-          <div className="stat-label">Focus Sessions</div>
-          <div className="stat-sub">{((sessions * 25) / 60).toFixed(1)}h today</div>
+          <div className="stat-label">Sessions Today</div>
+          <div className="stat-sub">{((sessions * 25) / 60).toFixed(1)}h focused</div>
           <div className="prog-bar"><div className="prog-fill" style={{ width: `${Math.min(sessions / 8 * 100, 100)}%`, background: "var(--jade)" }} /></div>
         </div>
-        <div className="stat-card" style={{ "--card-accent": "var(--indigo)" }} onClick={() => setPage("study")}>
-          <div className="stat-num">2.5h</div>
-          <div className="stat-label">Study Time</div>
-          <div className="stat-sub">Physics · Math</div>
-          <div className="prog-bar"><div className="prog-fill" style={{ width: "50%", background: "var(--indigo)" }} /></div>
+        <div className="stat-card" style={{ "--card-accent": "var(--indigo)" }} onClick={() => setPage("focus")}>
+          <div className="stat-num">{totalFocusHrs}h</div>
+          <div className="stat-label">Deep Work</div>
+          <div className="stat-sub">Total time tracked</div>
+          <div className="prog-bar"><div className="prog-fill" style={{ width: "100%", background: "var(--indigo)" }} /></div>
         </div>
         <div className="stat-card" style={{ "--card-accent": "var(--rose)" }} onClick={() => setPage("habits")}>
           <div className="stat-num">5/6</div>
@@ -603,7 +628,7 @@ function HomePage({ greeting, dateStr, quote, setPage, sessions }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         <div className="panel" style={{ gridColumn: "1/3" }}>
-          <div className="panel-hd"><div className="panel-title">Study Hours This Week</div></div>
+          <div className="panel-hd"><div className="panel-title">Focus Hours This Week</div></div>
           <div className="bar-chart">
             {weekData.map((v, i) => (
               <div key={i} className="bar-col">
@@ -891,153 +916,10 @@ function TasksPage() {
   );
 }
 
-// ─── STUDY PAGE ───────────────────────────────────────────────────────────────
-function StudyPage() {
-  const [subjects, setSubjects] = useLocalStorage("subjects", DEFAULT_SUBJECTS);
-  const [sessions2, setSessions2] = useLocalStorage("study_sessions", []);
-  const [logSubj, setLogSubj] = useState(subjects[0]?.id || 0);
-  const [logMins, setLogMins] = useState(60);
-  const [logTopic, setLogTopic] = useState("");
-  const [showSubForm, setShowSubForm] = useState(false);
-  const [newSub, setNewSub] = useState({ name: "", icon: "📚", color: "var(--gold)", target: 20 });
 
-  const logSession = () => {
-    if (!logTopic.trim() || !logSubj) return;
-    setSessions2([{
-      id: Date.now(), subjectId: logSubj, topic: logTopic.trim(),
-      minutes: logMins, date: getTodayKey(),
-      dateStr: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-    }, ...sessions2]);
-    setLogTopic("");
-  };
-
-  const addSubject = () => {
-    if (!newSub.name.trim()) return;
-    const id = Date.now();
-    setSubjects([...subjects, { id, ...newSub }]);
-    setLogSubj(id);
-    setShowSubForm(false);
-    setNewSub({ name: "", icon: "📚", color: "var(--gold)", target: 20 });
-  };
-
-  const delSubject = (id) => {
-    setSubjects(subjects.filter(s => s.id !== id));
-    if (logSubj === id) setLogSubj(subjects.find(s => s.id !== id)?.id || 0);
-  };
-
-  const hoursFor = id => {
-    const mins = sessions2.filter(s => s.subjectId === id).reduce((a, s) => a + s.minutes, 0);
-    return (mins / 60).toFixed(1);
-  };
-  const totalHrs = (sessions2.reduce((a, s) => a + s.minutes, 0) / 60).toFixed(1);
-
-  return (
-    <div>
-      <div className="page-header">
-        <div><div className="page-title">Study Tracker</div><div className="page-sub">Track hours per subject · build consistency</div></div>
-        <button className="btn" onClick={() => setShowSubForm(!showSubForm)}>{showSubForm ? "Cancel" : "+ Add Subject"}</button>
-      </div>
-
-      {showSubForm && (
-        <div className="panel mb2">
-          <div className="panel-hd"><div className="panel-title">Add New Subject</div></div>
-          <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-            <input className="inp" placeholder="Subject name..." value={newSub.name} onChange={e => setNewSub({...newSub, name: e.target.value})} style={{ flex: 1 }} />
-            <input className="inp" placeholder="Icon" value={newSub.icon} onChange={e => setNewSub({...newSub, icon: e.target.value})} style={{ width: 50 }} />
-            <input className="inp" type="number" placeholder="Target hrs" value={newSub.target} onChange={e => setNewSub({...newSub, target: +e.target.value})} style={{ width: 80 }} />
-            <select className="inp" value={newSub.color} onChange={e => setNewSub({...newSub, color: e.target.value})} style={{ width: 100 }}>
-              <option value="var(--gold)">Gold</option>
-              <option value="var(--jade)">Jade</option>
-              <option value="var(--rose)">Rose</option>
-              <option value="var(--indigo)">Indigo</option>
-            </select>
-            <button className="btn" onClick={addSubject}>Add</button>
-          </div>
-        </div>
-      )}
-
-      <div className="stat-row mb2">
-        {[
-          { label: "Total Hours", val: `${totalHrs}h`, accent: "var(--gold)", pct: Math.min(+totalHrs / 40 * 100, 100) },
-          { label: "Today", val: "2.5h", accent: "var(--jade)", pct: 50 },
-          { label: "Sessions", val: sessions2.length, accent: "var(--indigo)", pct: Math.min(sessions2.length / 10 * 100, 100) },
-          { label: "Subjects", val: subjects.length, accent: "var(--rose)", pct: 100 },
-        ].map((s, i) => (
-          <div key={i} className="stat-card" style={{ "--card-accent": s.accent }}>
-            <div className="stat-num">{s.val}</div>
-            <div className="stat-label">{s.label}</div>
-            <div className="prog-bar"><div className="prog-fill" style={{ width: `${s.pct}%`, background: s.accent }} /></div>
-          </div>
-        ))}
-      </div>
-
-      <div className="panel mb2">
-        <div className="panel-hd"><div className="panel-title">Log Study Session</div></div>
-        <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-          <select className="inp" value={logSubj} onChange={e => setLogSubj(+e.target.value)} style={{ flex: "0 0 130px" }}>
-            {subjects.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
-          </select>
-          <input className="inp" placeholder="Topic covered..." value={logTopic}
-            onChange={e => setLogTopic(e.target.value)} onKeyDown={e => e.key === "Enter" && logSession()} style={{ flex: 1 }} />
-          <select className="inp" value={logMins} onChange={e => setLogMins(+e.target.value)} style={{ flex: "0 0 90px" }}>
-            {[15, 30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m}m</option>)}
-          </select>
-          <button className="btn" onClick={logSession}>Log</button>
-        </div>
-      </div>
-
-      <div className="grid2">
-        <div className="panel">
-          <div className="panel-hd"><div className="panel-title">Subjects</div></div>
-          {subjects.map(s => {
-            const hrs = +hoursFor(s.id);
-            const pct = Math.min(Math.round(hrs / s.target * 100), 100);
-            return (
-              <div key={s.id} className="subject-row">
-                <div className="subj-bar" style={{ background: s.color }} />
-                <div style={{ flex: 1 }}>
-                  <div className="row between">
-                    <div className="subj-name">{s.icon} {s.name}</div>
-                    <div className="btn-icon btn-sm" onClick={() => delSubject(s.id)}>×</div>
-                  </div>
-                  <div className="subj-meta">{hrs}h / {s.target}h target</div>
-                  <div className="mini-prog">
-                    <div className="mini-fill" style={{ width: `${pct}%`, background: s.color }} />
-                  </div>
-                </div>
-                <div style={{ fontFamily: "var(--font-m)", fontSize: 14, color: s.color }}>{pct}%</div>
-              </div>
-            );
-          })}
-          {subjects.length === 0 && <div className="empty-state">No subjects. Add one above.</div>}
-        </div>
-        <div className="panel">
-          <div className="panel-hd"><div className="panel-title">Recent Sessions</div></div>
-          {sessions2.slice(0, 6).map(s => {
-            const subj = subjects.find(x => x.id === s.subjectId) || { name: "Deleted", color: "var(--t3)" };
-            return (
-              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--b1)" }}>
-                <div style={{ width: 3, height: 32, borderRadius: 2, background: subj.color, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, color: "var(--t1)", fontWeight: 500 }}>{subj.name}</div>
-                  <div style={{ fontSize: 10, color: "var(--t3)" }}>{s.topic}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontFamily: "var(--font-m)", fontSize: 13, color: subj.color }}>{s.minutes}m</div>
-                  <div style={{ fontSize: 10, color: "var(--t3)" }}>{s.date}</div>
-                </div>
-              </div>
-            );
-          })}
-          {sessions2.length === 0 && <div className="empty-state">No sessions logged yet.</div>}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── FOCUS / POMODORO PAGE ────────────────────────────────────────────────────
-function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, sessions, setSessions, customWork, setCustomWork, customShort, setCustomShort }) {
+function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, sessions, setSessions, customWork, setCustomWork, customShort, setCustomShort, focusSessions, setFocusSessions, currentTask, setCurrentTask, currentCategory, setCurrentCategory }) {
   const total = mode === "work" ? customWork * 60 : mode === "short" ? customShort * 60 : 15 * 60;
   const circ = 2 * Math.PI * 78;
   const offset = circ * (1 - secs / total);
@@ -1046,6 +928,10 @@ function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, sessions
   const reset = () => {
     setRunning(false);
     setSecs(total);
+  };
+
+  const delSession = (id) => {
+    setFocusSessions(focusSessions.filter(s => s.id !== id));
   };
 
   return (
@@ -1063,65 +949,108 @@ function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, sessions
         ))}
       </div>
 
-      <div className="panel" style={{ maxWidth: 380, margin: "0 auto 16px", textAlign: "center", padding: 28 }}>
-        <div className="ring-wrap" style={{ marginBottom: 14 }}>
-          <svg width="180" height="180">
-            <circle cx="90" cy="90" r="78" fill="none" stroke="var(--s3)" strokeWidth="6" />
-            <circle cx="90" cy="90" r="78" fill="none" stroke={col} strokeWidth="6" strokeLinecap="round"
-              strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.5s, stroke 0.3s" }} />
-          </svg>
-          <div className="ring-inner">
-            <div className="ring-time">
-              {(() => {
-                const [m, s] = fmtParts(secs);
-                return (
-                  <>
-                    <span>{m}</span>
-                    <span className="colon">:</span>
-                    <span>{s}</span>
-                  </>
-                );
-              })()}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
+        <div className="panel" style={{ textAlign: "center", padding: "28px 14px" }}>
+          <div className="ring-wrap" style={{ marginBottom: 14 }}>
+            <svg width="180" height="180">
+              <circle cx="90" cy="90" r="78" fill="none" stroke="var(--s3)" strokeWidth="6" />
+              <circle cx="90" cy="90" r="78" fill="none" stroke={col} strokeWidth="6" strokeLinecap="round"
+                strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.5s, stroke 0.3s" }} />
+            </svg>
+            <div className="ring-inner">
+              <div className="ring-time">
+                {(() => {
+                  const [m, s] = fmtParts(secs);
+                  return (
+                    <>
+                      <span>{m}</span>
+                      <span className="colon">:</span>
+                      <span>{s}</span>
+                    </>
+                  );
+                })()}
+              </div>
+              <div className="ring-mode">{MODES[mode].label}</div>
             </div>
-            <div className="ring-mode">{MODES[mode].label}</div>
+          </div>
+
+          {mode === "work" && (
+            <div className="col mb2" style={{ maxWidth: 280, margin: "0 auto" }}>
+              <input className="inp" placeholder="What are you focusing on?" value={currentTask} onChange={e => setCurrentTask(e.target.value)} disabled={running} />
+              <select className="inp" value={currentCategory} onChange={e => setCurrentCategory(e.target.value)} disabled={running}>
+                <option value="General">General</option>
+                <option value="Coding">Coding</option>
+                <option value="Learning">Learning</option>
+                <option value="Planning">Planning</option>
+                <option value="Rest">Rest</option>
+              </select>
+            </div>
+          )}
+
+          <div className="session-dots">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className={`s-dot ${i < sessions ? "done" : i === sessions && running ? "active" : ""}`} />
+            ))}
+          </div>
+
+          <div className="row" style={{ justifyContent: "center", gap: 10 }}>
+            <button className="btn-ghost" onClick={reset}>Reset</button>
+            <button className="btn" style={{ minWidth: 100, background: running ? "var(--rose)" : "var(--gold)" }}
+              onClick={() => setRunning(r => !r)}>
+              {running ? "Pause" : "Start"}
+            </button>
           </div>
         </div>
 
-        <div className="session-dots">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className={`s-dot ${i < sessions ? "done" : i === sessions && running ? "active" : ""}`} />
-          ))}
-        </div>
-
-        <div className="row" style={{ justifyContent: "center", gap: 10 }}>
-          <button className="btn-ghost" onClick={reset}>Reset</button>
-          <button className="btn" style={{ minWidth: 100, background: running ? "var(--rose)" : "var(--gold)" }}
-            onClick={() => setRunning(r => !r)}>
-            {running ? "Pause" : "Start"}
-          </button>
-        </div>
-      </div>
-
-      <div className="panel" style={{ maxWidth: 380, margin: "0 auto" }}>
-        <div className="panel-title" style={{ marginBottom: 14 }}>Settings</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          <div>
-            <div className="row between" style={{ marginBottom: 8, fontSize: 11, color: "var(--t3)" }}>
-              <span>Focus</span><span style={{ color: "var(--gold)", fontFamily: "var(--font-m)" }}>{customWork}m</span>
+        <div className="col">
+          <div className="panel">
+            <div className="panel-hd"><div className="panel-title">Focus History</div></div>
+            <div style={{ maxHeight: 300, overflowY: "auto", scrollbarWidth: "none" }}>
+              {focusSessions.map(s => (
+                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--b1)" }}>
+                  <div style={{ width: 3, height: 32, borderRadius: 2, background: "var(--gold)", flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>{s.task}</div>
+                    <div style={{ fontSize: 10, color: "var(--t3)" }}>{s.category} · {s.duration}m</div>
+                  </div>
+                  <div style={{ textAlign: "right", paddingRight: 8 }}>
+                    <div style={{ fontFamily: "var(--font-m)", fontSize: 11, color: "var(--t2)" }}>{s.time}</div>
+                    <div style={{ fontSize: 9, color: "var(--t3)" }}>{s.date}</div>
+                  </div>
+                  <div className="btn-icon btn-sm" onClick={() => delSession(s.id)}>×</div>
+                </div>
+              ))}
+              {focusSessions.length === 0 && <div className="empty-state">No sessions recorded yet.</div>}
             </div>
-            <input type="range" min={5} max={60} step={5} value={customWork} onChange={e => setCustomWork(+e.target.value)} />
           </div>
-          <div>
-            <div className="row between" style={{ marginBottom: 8, fontSize: 11, color: "var(--t3)" }}>
-              <span>Short Break</span><span style={{ color: "var(--jade)", fontFamily: "var(--font-m)" }}>{customShort}m</span>
+
+          <div className="panel">
+            <div className="panel-title" style={{ marginBottom: 14 }}>Settings</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              <div>
+                <div className="row between" style={{ marginBottom: 8, fontSize: 11, color: "var(--t3)" }}>
+                  <span>Focus</span><span style={{ color: "var(--gold)", fontFamily: "var(--font-m)" }}>{customWork}m</span>
+                </div>
+                <input type="range" min={5} max={60} step={5} value={customWork} onChange={e => setCustomWork(+e.target.value)} />
+              </div>
+              <div>
+                <div className="row between" style={{ marginBottom: 8, fontSize: 11, color: "var(--t3)" }}>
+                  <span>Short Break</span><span style={{ color: "var(--jade)", fontFamily: "var(--font-m)" }}>{customShort}m</span>
+                </div>
+                <input type="range" min={1} max={15} value={customShort} onChange={e => setCustomShort(+e.target.value)} />
+              </div>
             </div>
-            <input type="range" min={1} max={15} value={customShort} onChange={e => setCustomShort(+e.target.value)} />
+            <div className="divider" />
+            <div className="row between">
+              <button className="btn-ghost btn-sm" onClick={() => setSessions(0)} style={{ color: "var(--rose)", borderColor: "var(--rose2)" }}>
+                Reset sessions
+              </button>
+              <button className="btn-ghost btn-sm" onClick={() => setFocusSessions([])} style={{ color: "var(--rose)", borderColor: "var(--rose2)" }}>
+                Clear History
+              </button>
+            </div>
           </div>
         </div>
-        <div className="divider" />
-        <button className="btn-ghost btn-sm" onClick={() => setSessions(0)} style={{ color: "var(--rose)", borderColor: "var(--rose2)" }}>
-          Reset session count
-        </button>
       </div>
     </div>
   );
@@ -1288,26 +1217,50 @@ function NotesPage() {
 }
 
 // ─── STATS PAGE ───────────────────────────────────────────────────────────────
-function StatsPage({ sessions }) {
+// ─── STATS PAGE ───────────────────────────────────────────────────────────────
+function StatsPage({ focusSessions }) {
   const [todos] = useLocalStorage("todos", []);
-  const [sessions2] = useLocalStorage("study_sessions", []);
   const [habits] = useLocalStorage("habits", DEFAULT_HABITS);
   const [done] = useLocalStorage("habit_done", {});
 
   const doneCount = todos.filter(t => t.done).length;
   const total = todos.length;
-  const focusHrs = ((sessions * 25) / 60).toFixed(1);
-  const studyHrs = (sessions2.reduce((a, s) => a + s.minutes, 0) / 60).toFixed(1);
+  
+  const totalFocusMins = focusSessions.reduce((acc, s) => acc + s.duration, 0);
+  const totalFocusHrs = (totalFocusMins / 60).toFixed(1);
 
-  const weekBars = [1.5, 2.0, 0, 3.0, 2.5, 1.0, 0];
+  // Group focus sessions by day
+  const weekBars = [0, 0, 0, 0, 0, 0, 0];
+  const today = new Date();
+  focusSessions.forEach(s => {
+    const sDate = new Date(s.date);
+    const diff = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
+    if (diff >= 0 && diff < 7) {
+      const idx = (sDate.getDay() + 6) % 7;
+      weekBars[idx] += s.duration / 60;
+    }
+  });
+  
   const taskBars = [5, 4, 0, 7, 4, 2, 0];
-  const maxW = Math.max(...weekBars) || 1;
-  const maxT = Math.max(...taskBars) || 1;
+  const maxW = Math.max(...weekBars, 1);
+  const maxT = Math.max(...taskBars, 1);
 
   const todayIdx = getTodayIdx();
   const habitRate = habits.length > 0
     ? Math.round(habits.filter(h => done[`${h.id}-${getTodayKey()}-${todayIdx}`]).length / habits.length * 100)
     : 0;
+
+  // Category Distribution
+  const categories = {};
+  focusSessions.forEach(s => {
+    categories[s.category] = (categories[s.category] || 0) + s.duration;
+  });
+  const totalMins = Math.max(totalFocusMins, 1);
+  const catDist = Object.entries(categories).map(([name, mins]) => ({
+    name,
+    pct: Math.round((mins / totalMins) * 100),
+    c: name === "Coding" ? "var(--gold)" : name === "Learning" ? "var(--jade)" : name === "Planning" ? "var(--indigo)" : "var(--rose)"
+  }));
 
   return (
     <div>
@@ -1317,9 +1270,9 @@ function StatsPage({ sessions }) {
 
       <div className="stat-row mb2">
         {[
-          { label: "Study Hours", val: `${studyHrs}h`, accent: "var(--gold)", pct: Math.min(+studyHrs / 40 * 100, 100) },
+          { label: "Deep Work", val: `${totalFocusHrs}h`, accent: "var(--gold)", pct: Math.min(+totalFocusHrs / 40 * 100, 100) },
           { label: "Tasks Done", val: doneCount, accent: "var(--jade)", pct: total ? doneCount / total * 100 : 0 },
-          { label: "Focus Sess.", val: sessions, accent: "var(--indigo)", pct: Math.min(sessions / 8 * 100, 100) },
+          { label: "Focus Rate", val: `${focusSessions.length} sess`, accent: "var(--indigo)", pct: Math.min(focusSessions.length / 20 * 100, 100) },
           { label: "Habit Rate", val: `${habitRate}%`, accent: "var(--rose)", pct: habitRate },
         ].map((s, i) => (
           <div key={i} className="stat-card" style={{ "--card-accent": s.accent }}>
@@ -1332,7 +1285,7 @@ function StatsPage({ sessions }) {
 
       <div className="grid2">
         <div className="panel">
-          <div className="panel-hd"><div className="panel-title">Study Hours / Day</div></div>
+          <div className="panel-hd"><div className="panel-title">Focus Hours / Day (This Week)</div></div>
           <div className="bar-chart">
             {weekBars.map((v, i) => (
               <div key={i} className="bar-col">
@@ -1362,13 +1315,8 @@ function StatsPage({ sessions }) {
           </div>
         </div>
         <div className="panel">
-          <div className="panel-hd"><div className="panel-title">Subject Distribution</div></div>
-          {[
-            { name: "Mathematics", pct: 40, c: "var(--gold)" },
-            { name: "Physics", pct: 28, c: "var(--jade)" },
-            { name: "Chemistry", pct: 18, c: "var(--indigo)" },
-            { name: "English", pct: 14, c: "var(--rose)" },
-          ].map(s => (
+          <div className="panel-hd"><div className="panel-title">Focus Distribution</div></div>
+          {catDist.length > 0 ? catDist.map(s => (
             <div key={s.name} style={{ marginBottom: 10 }}>
               <div className="row between" style={{ fontSize: 11, color: "var(--t2)", marginBottom: 4 }}>
                 <span>{s.name}</span>
@@ -1378,7 +1326,7 @@ function StatsPage({ sessions }) {
                 <div style={{ height: "100%", width: `${s.pct}%`, background: s.c, borderRadius: 2 }} />
               </div>
             </div>
-          ))}
+          )) : <div className="empty-state">No focus data yet</div>}
         </div>
         <div className="panel">
           <div className="panel-hd"><div className="panel-title">Habit Consistency (This Week)</div></div>

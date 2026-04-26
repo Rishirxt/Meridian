@@ -53,26 +53,15 @@ const GoalSchema = new Schema({
 }, { timestamps: true });
 
 /**
- * ─── STUDY SUBJECTS SCHEMA ───────────────────────────────────────────────────
- * Currently managed as 'subjects' in localStorage.
+ * ─── FOCUS SESSIONS SCHEMA ───────────────────────────────────────────────────
+ * Currently managed as 'focus_sessions' in localStorage.
  */
-const SubjectSchema = new Schema({
-  name: { type: String, required: true },
-  icon: { type: String, default: '📚' },
-  color: { type: String, default: 'var(--gold)' },
-  target: { type: Number, default: 20 }, // Target hours
-  userId: { type: Schema.Types.ObjectId, ref: 'User' },
-}, { timestamps: true });
-
-/**
- * ─── STUDY SESSIONS SCHEMA ───────────────────────────────────────────────────
- * Currently managed as 'study_sessions' in localStorage.
- */
-const StudySessionSchema = new Schema({
-  subjectId: { type: Schema.Types.ObjectId, ref: 'Subject', required: true },
-  topic: { type: String, required: true },
-  minutes: { type: Number, required: true },
+const FocusSessionSchema = new Schema({
+  task: { type: String, required: true },
+  category: { type: String, default: 'General' },
+  duration: { type: Number, required: true }, // Minutes
   date: { type: String, required: true }, // Format: YYYY-MM-DD
+  time: { type: String }, // Format: HH:MM
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
@@ -106,7 +95,6 @@ export const Task = mongoose.model('Task', TaskSchema);
 export const Habit = mongoose.model('Habit', HabitSchema);
 export const HabitLog = mongoose.model('HabitLog', HabitLogSchema);
 export const Goal = mongoose.model('Goal', GoalSchema);
-export const Subject = mongoose.model('Subject', SubjectSchema);
-export const StudySession = mongoose.model('StudySession', StudySessionSchema);
+export const FocusSession = mongoose.model('FocusSession', FocusSessionSchema);
 export const Note = mongoose.model('Note', NoteSchema);
 export const UserSettings = mongoose.model('UserSettings', UserSettingsSchema);
