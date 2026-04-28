@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useMemo } from "react";
 
 // ─── FONTS ───────────────────────────────────────────────────────────────────
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap');`;
@@ -351,20 +351,29 @@ input[type=range]::-webkit-slider-thumb {
 .ring-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
 .ring-time  {
   font-family: var(--font-m);
-  font-size: 52px;
+  font-size: 54px;
   color: var(--t1);
   line-height: 1;
   font-variant-numeric: tabular-nums;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  gap: 2px;
   width: 100%;
-  letter-spacing: -0.02em;
+  height: 60px; /* Fixed height to prevent vertical jitter */
 }
-.ring-time span { display: inline-block; min-width: 0.65em; text-align: center; }
-.ring-time .colon { min-width: 0.25em; opacity: 0.5; font-family: var(--font-b); position: relative; top: -4px; }
-.ring-mode  { font-size: 10px; color: var(--t3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+.ring-time span { 
+  display: inline-block; 
+  width: 1.25ch; 
+  text-align: center; 
+}
+.ring-time .colon { 
+  width: 0.6ch; 
+  opacity: 0.5; 
+  font-family: var(--font-m);
+  position: relative; 
+  top: -2px; 
+}
+.ring-mode  { font-size: 10px; color: var(--t3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
 .session-dots { display: flex; gap: 5px; justify-content: center; margin: 12px 0; }
 .s-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--b2); transition: all 0.3s; }
 .s-dot.done   { background: var(--gold); border-color: var(--gold); }
@@ -403,6 +412,11 @@ input[type=range]::-webkit-slider-thumb {
   .grid2, .grid3, .note-grid { grid-template-columns: 1fr; }
 }
 `;
+
+// ─── STYLES COMPONENT ────────────────────────────────────────────────────────
+const GlobalStyles = memo(() => (
+  <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+));
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export default function App() {
@@ -465,7 +479,7 @@ export default function App() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+      <GlobalStyles />
       <div className="shell">
         <Sidebar page={page} setPage={setPage} sessions={sessions} />
         <div className="main">
@@ -498,7 +512,7 @@ export default function App() {
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
-function Sidebar({ page, setPage, sessions }) {
+const Sidebar = memo(({ page, setPage, sessions }) => {
   const [todos] = useLocalStorage("todos", []);
   const remaining = todos.filter(t => !t.done).length;
   return (
@@ -537,7 +551,7 @@ function Sidebar({ page, setPage, sessions }) {
       </div>
     </aside>
   );
-}
+});
 
 // ─── TOPBAR ───────────────────────────────────────────────────────────────────
 const PAGE_TITLES = {
@@ -546,7 +560,7 @@ const PAGE_TITLES = {
   habits: "Habits", notes: "Notes", stats: "Analytics",
 };
 
-function TopBar({ dateStr, mood, page }) {
+const TopBar = memo(({ dateStr, mood, page }) => {
   return (
     <div className="topbar">
       <div className="topbar-title">{PAGE_TITLES[page] || page}</div>
@@ -557,7 +571,7 @@ function TopBar({ dateStr, mood, page }) {
       </div>
     </div>
   );
-}
+});
 
 // ─── HOME PAGE ────────────────────────────────────────────────────────────────
 function HomePage({ greeting, dateStr, quote, setPage, sessions }) {
@@ -963,9 +977,11 @@ function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, sessions
                   const [m, s] = fmtParts(secs);
                   return (
                     <>
-                      <span>{m}</span>
+                      <span>{m[0]}</span>
+                      <span>{m[1]}</span>
                       <span className="colon">:</span>
-                      <span>{s}</span>
+                      <span>{s[0]}</span>
+                      <span>{s[1]}</span>
                     </>
                   );
                 })()}
