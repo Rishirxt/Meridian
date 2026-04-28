@@ -10,6 +10,7 @@ import { NotesPage } from "./components/NotesPage";
 import { StatsPage } from "./components/StatsPage";
 
 import { useLocalStorage, QUOTE_LIST, MOODS, MODES, getTodayKey } from "./utils";
+import { invoke } from "@tauri-apps/api/tauri";
 
 // ─── FONTS ───────────────────────────────────────────────────────────────────
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap');`;
@@ -366,6 +367,12 @@ export default function App() {
   const [currentTask, setCurrentTask] = useState("");
   const [currentCategory, setCurrentCategory] = useState("General");
   const ivRef = useRef(null);
+
+  useEffect(() => {
+    invoke("ping_db")
+      .then(res => console.log("MongoDB status:", res))
+      .catch(err => console.error("MongoDB error:", err));
+  }, []);
 
   useEffect(() => {
     setPomSecs(pomMode === "work" ? customWork * 60 : pomMode === "short" ? customShort * 60 : 15 * 60);
