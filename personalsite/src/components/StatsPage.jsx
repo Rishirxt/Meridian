@@ -23,7 +23,18 @@ export function StatsPage({ focusSessions }) {
     }
   });
   
-  const taskBars = [5, 4, 0, 7, 4, 2, 0];
+  const taskBars = [0, 0, 0, 0, 0, 0, 0];
+  todos.forEach(t => {
+    if (t.done && t.date) {
+      const tDate = new Date(t.date);
+      const diff = Math.floor((today - tDate) / (1000 * 60 * 60 * 24));
+      if (diff >= 0 && diff < 7) {
+        const idx = (tDate.getDay() + 6) % 7;
+        taskBars[idx] += 1;
+      }
+    }
+  });
+  
   const maxW = Math.max(...weekBars, 1);
   const maxT = Math.max(...taskBars, 1);
 

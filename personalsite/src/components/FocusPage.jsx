@@ -2,9 +2,6 @@ import { MODES, fmtParts } from "../utils";
 
 export function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, sessions, setSessions, customWork, setCustomWork, customShort, setCustomShort, focusSessions, setFocusSessions, currentTask, setCurrentTask, currentCategory, setCurrentCategory }) {
   const total = mode === "work" ? customWork * 60 : mode === "short" ? customShort * 60 : 15 * 60;
-  const circ = 2 * Math.PI * 78;
-  const offset = circ * (1 - secs / total);
-  const col = MODES[mode].color;
 
   const reset = () => {
     setRunning(false);
@@ -32,12 +29,7 @@ export function FocusPage({ mode, setMode, secs, setSecs, running, setRunning, s
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}>
         <div className="panel" style={{ textAlign: "center", padding: "28px 14px" }}>
-          <div className="ring-wrap" style={{ marginBottom: 14 }}>
-            <svg width="180" height="180">
-              <circle cx="90" cy="90" r="78" fill="none" stroke="var(--s3)" strokeWidth="6" />
-              <circle cx="90" cy="90" r="78" fill="none" stroke={col} strokeWidth="6" strokeLinecap="round"
-                strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.5s, stroke 0.3s" }} />
-            </svg>
+          <div className="ring-wrap" style={{ marginBottom: 14, width: 180, height: 180 }}>
             <div className="ring-inner">
               <div className="ring-time">
                 {(() => {

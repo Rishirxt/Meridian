@@ -31,20 +31,9 @@ export const MODES = {
   long: { label: "Long Break", duration: 15 * 60, color: "var(--indigo)" },
 };
 
-export const DEFAULT_HABITS = [
-  { id: 1, icon: "✍", name: "Morning journaling" },
-  { id: 2, icon: "⚡", name: "Exercise 30min" },
-  { id: 3, icon: "📖", name: "Read 20 min" },
-  { id: 4, icon: "🧘", name: "Meditate" },
-  { id: 5, icon: "💧", name: "Drink 2L water" },
-  { id: 6, icon: "🚫", name: "No phone till 9am" },
-];
+export const DEFAULT_HABITS = [];
 
-export const DEFAULT_GOALS = [
-  { id: 1, icon: "🎓", name: "Final Exams 2026", desc: "Pass all subjects with distinction", color: "var(--gold)", progress: 62, deadline: "14 days" },
-  { id: 2, icon: "💪", name: "Stay Fit", desc: "30 min exercise every day", color: "var(--jade)", progress: 73, deadline: "Ongoing" },
-  { id: 3, icon: "📚", name: "Read 12 Books", desc: "Complete reading list by June", color: "var(--indigo)", progress: 58, deadline: "60 days" },
-];
+export const DEFAULT_GOALS = [];
 
 export const PRIO_COLORS = { high: "var(--rose)", normal: "var(--gold)", low: "var(--t3)" };
 export const DAYS_SHORT = ["M", "T", "W", "T", "F", "S", "S"];

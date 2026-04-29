@@ -4,6 +4,7 @@ import { useLocalStorage, getTodayKey, getTodayIdx, DAYS_SHORT, DEFAULT_HABITS }
 export function HomePage({ greeting, dateStr, quote, setPage, sessions }) {
   const [focusSessions] = useLocalStorage("focus_sessions", []);
   const [todos] = useLocalStorage("todos", []);
+  const [goals] = useLocalStorage("goals", []);
   const doneCount = todos.filter(t => t.done).length;
   const total = todos.length;
 
@@ -22,6 +23,9 @@ export function HomePage({ greeting, dateStr, quote, setPage, sessions }) {
     }
   });
   const maxW = Math.max(...weekData, 1);
+
+  const activeGoals = goals.filter(g => !g.completed);
+  const topGoal = activeGoals.sort((a, b) => b.progress - a.progress)[0];
 
   return (
     <div>
@@ -85,15 +89,19 @@ export function HomePage({ greeting, dateStr, quote, setPage, sessions }) {
         </div>
         <div className="panel">
           <div className="panel-hd"><div className="panel-title">Top Goal</div></div>
-          <div style={{ textAlign: "center", padding: "10px 0" }}>
-            <div style={{ fontSize: 28, marginBottom: 6 }}>🎓</div>
-            <div style={{ fontFamily: "var(--font-d)", fontSize: 15, color: "var(--t1)" }}>Final Exams</div>
-            <div style={{ fontSize: 10, color: "var(--t3)", margin: "4px 0 12px" }}>14 days remaining</div>
-            <div style={{ background: "var(--b1)", borderRadius: 4, height: 6, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: "62%", background: "var(--gold)", borderRadius: 4 }} />
+          {topGoal ? (
+            <div style={{ textAlign: "center", padding: "10px 0" }}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>{topGoal.icon}</div>
+              <div style={{ fontFamily: "var(--font-d)", fontSize: 15, color: "var(--t1)" }}>{topGoal.name}</div>
+              <div style={{ fontSize: 10, color: "var(--t3)", margin: "4px 0 12px" }}>{topGoal.deadline}</div>
+              <div style={{ background: "var(--b1)", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${topGoal.progress}%`, background: topGoal.color, borderRadius: 4 }} />
+              </div>
+              <div style={{ fontFamily: "var(--font-m)", fontSize: 20, color: topGoal.color, marginTop: 10 }}>{topGoal.progress}%</div>
             </div>
-            <div style={{ fontFamily: "var(--font-m)", fontSize: 20, color: "var(--gold)", marginTop: 10 }}>62%</div>
-          </div>
+          ) : (
+            <div className="empty-state" style={{ padding: "40px 10px", marginTop: 20 }}>No active goals</div>
+          )}
         </div>
       </div>
     </div>
