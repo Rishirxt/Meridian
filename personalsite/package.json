@@ -1,23 +1,19 @@
 {
-  "name": "personalsite",
-  "version": "0.0.0",
+  "name": "meridian",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "ui:start": "vite",
-    "dev": "tauri dev",
+    "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^1.5.0",
     "@vitejs/plugin-react": "^6.0.1",
     "vite": "^8.0.8"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.5.0",
-    "mongodb": "^7.2.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^6.28.0"
   }
 }
