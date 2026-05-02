@@ -11,10 +11,8 @@ import { StatsPage } from "./components/StatsPage";
 
 import { useLocalStorage, QUOTE_LIST, MOODS, MODES, getTodayKey } from "./utils";
 
-// ─── FONTS ───────────────────────────────────────────────────────────────────
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap');`;
 
-// ─── STYLES ───────────────────────────────────────────────────────────────────
 const STYLES = `
 ${FONTS}
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
