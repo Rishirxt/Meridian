@@ -340,7 +340,37 @@ input[type=range]::-webkit-slider-thumb {
   .stat-row { grid-template-columns: 1fr 1fr; }
   .grid2, .grid3, .note-grid { grid-template-columns: 1fr; }
 }
-`;
+
+/* ── WELCOME OVERLAY ── */
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeOut 2s forwards 0.5s; /* delay then fade */
+}
+.welcome-title {
+  font-family: var(--font-d);
+  font-size: 48px;
+  font-weight: 300;
+  color: var(--gold);
+  opacity: 0;
+  animation: slideIn 1s forwards, fadeIn 1s forwards 0.5s;
+}
+@keyframes slideIn {
+  from { transform: translateY(-20px); }
+  to { transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeOut {
+  to { opacity: 0; visibility: hidden; }
+}`;
 
 // ─── STYLES COMPONENT ────────────────────────────────────────────────────────
 const GlobalStyles = memo(() => (
@@ -349,6 +379,13 @@ const GlobalStyles = memo(() => (
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export default function App() {
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  // Hide welcome after animation
+  useEffect(() => {
+    const timer = setTimeout(() => setShowWelcome(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
   const [page, setPage] = useState("home");
   const [mood, setMood] = useLocalStorage("mood", MOODS[0]);
   const [quote] = useState(() => QUOTE_LIST[Math.floor(Math.random() * QUOTE_LIST.length)]);
@@ -409,7 +446,12 @@ export default function App() {
   return (
     <>
       <GlobalStyles />
-      <div className="shell">
+      {showWelcome && (
+        <div className="welcome-overlay">
+          <h1 className="welcome-title">Welcome</h1>
+        </div>
+      )}
+      <div className="shell" style={{ visibility: showWelcome ? 'hidden' : 'visible' }}>
         <Sidebar page={page} setPage={setPage} sessions={sessions} />
         <div className="main">
           <TopBar dateStr={dateStr} mood={mood} page={page} />
